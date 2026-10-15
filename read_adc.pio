@@ -1,12 +1,13 @@
-// some stuff might be taken from the raspberry pi pio example directly
+; some stuff might be taken from the raspberry pi pio example directly
 
 
-.program read_adc:
+.program read_adc
     pull block
 
-.wrap_target:
+.wrap_target
 readdata:
-    in pins, 14
+    jmp !pin readdata
+    in pins, 12
     push
 .wrap
 
@@ -14,11 +15,16 @@ readdata:
 % c-sdk {
 // this is a raw helper function for use by the user which sets up the GPIO output, and configures the SM to output on a particular pin
 
-void blink_program_init(PIO pio, uint sm, uint offset, uint pin) {
-   pio_gpio_init(pio, pin);
-   pio_sm_set_consecutive_pindirs(pio, sm, pin, 14, false);
-   pio_sm_config c = blink_program_get_default_config(offset);
-   sm_config_set_set_pins(&c, pin, 14);
+void read_adc_program_init(PIO pio, uint sm, uint offset, uint pin, uint clken) {
+   for(int i = 0; i<=12; i++) {
+   pio_gpio_init(pio, pin + i);
+   }
+   pio_gpio_init(pio, clken);
+   pio_sm_set_consecutive_pindirs(pio, sm, pin, 12, false);
+   pio_sm_set_consecutive_pindirs(pio, sm, clken, 1, false);
+   pio_sm_config c = read_adc_program_get_default_config(offset);
+   sm_config_set_in_pins(&c, pin);
+   sm_config_set_jmp_pin(&c, clken);
    pio_sm_init(pio, sm, offset, &c);
 }
 %}
