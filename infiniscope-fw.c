@@ -4,20 +4,14 @@
 #include "hardware/pio.h"
 
 #include "read_adc.pio.h"
-int capture_length = 2048;
+
+volatile bool trigger_or_not = 0;
+#define capture_length 2048
+#define trigpin 1 // define the actual trigger pin here(coming from the comparator)
 uint16_t captured_stuff[capture_length];
-#define trigpin 2 // define the actual trigger pin here(coming from the comparator)
 
-void int_read_adc(){
-    for(int i = 0; i < capture_length; i++){
-        capture_length[i] = pio_sm_get_blocking(pio, sm);
-    }
-
-    printf("Packet Start\n");
-    for(int i = 0; i<capture_length; i++){
-        printf("%d\n", capture_length[i]);
-    }
-    printf("Packet Over\n");
+void int_read_adc(uint pin, uint32_t GPIO_IRQ_EDGE_RISE){
+    trigger_or_not = 1; //yes, it triggers.
 }
 
 int main()
@@ -30,10 +24,24 @@ int main()
     printf("Loaded program at %d\n", offset);
     uint sm = pio_claim_unused_sm(pio, true);
 
-    read_adc_program_init(pio, sm, offset, 2, 1);
-    gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &int_read_adc);
+    read_adc_program_init(pio, sm, offset, 2);
+    gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &int_read_adc); // interrupt example taken from the RP2350 datasheet; page 549
+
     while (1){
-        sleep_ms(100);
+        while(trigger_or_not){
+            for(int i = 0; i < capture_length; i++){
+                captured_stuff[i] = pio_sm_get_blocking(pio, sm);
+            }
+
+            printf("Packet Start\n");
+            for(int i = 0; i < capture_length; i++){
+                printf("%d\n", captured_stuff[i]);
+            }
+            printf("Packet Over\n");
+
+            trigger_or_not = 0;
+        }
+        sleep_ms(10);
     }
 
     return 0;
