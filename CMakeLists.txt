@@ -59,8 +59,6 @@ target_include_directories(infiniscope-fw PRIVATE
 # Add any user requested libraries
 target_link_libraries(infiniscope-fw 
         hardware_pio
-        # frontend_control
         )
 
 pico_add_extra_outputs(infiniscope-fw)
-# pico_add_extra_outputs(frontend_control)

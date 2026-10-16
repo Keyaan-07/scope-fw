@@ -29,12 +29,12 @@ void pga_set_gain(int multiplier){
             gpio_put(G4, 0);
             break;
         default:
-            printf("Defaulting to a gain of 1x ");
+            printf("Error\nDefaulting to a gain of 1x ");
     }
 }
 
 
-// bool 1 for AC coupling and 0 for DC coupling
+// bool 0 for AC coupling and 1 for DC coupling
 void tmux_set_coupling(bool state){
     if(state == 0){
         gpio_put(ACDC_SEL, state);
@@ -44,4 +44,24 @@ void tmux_set_coupling(bool state){
         gpio_put(ACDC_SEL, state);
         printf("Not AC Coupled");
     }
+}
+
+void init_frontend(){
+    gpio_init(G0);
+    gpio_set_dir(G0, 1);
+
+    gpio_init(G1);
+    gpio_set_dir(G1, 1);
+
+    gpio_init(G2);
+    gpio_set_dir(G2, 1);
+
+    gpio_init(G3);
+    gpio_set_dir(G3, 1);
+
+    gpio_init(G4);
+    gpio_set_dir(G4, 1);
+
+    pga_set_gain(1); // initial coupling to 
+    tmux_set_coupling(1);
 }

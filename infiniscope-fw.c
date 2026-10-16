@@ -17,6 +17,7 @@ void int_read_adc(uint pin, uint32_t GPIO_IRQ_EDGE_RISE){
 int main()
 {
     stdio_init_all();
+    init_frontend();
 
     // next four lines directly taken from pico sdk examples with modifications
     PIO pio = pio0;
@@ -43,6 +44,6 @@ int main()
         }
         sleep_ms(10);
     }
-
+    
     return 0;
 }
