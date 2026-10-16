@@ -2,7 +2,6 @@
 
 
 .program read_adc
-    pull block
 
 .wrap_target
 readdata:
@@ -14,17 +13,17 @@ readdata:
 
 % c-sdk {
 // this is a raw helper function for use by the user which sets up the GPIO output, and configures the SM to output on a particular pin
-
-void read_adc_program_init(PIO pio, uint sm, uint offset, uint pin, uint clken) {
+//, uint clken // add this for direct pio
+void read_adc_program_init(PIO pio, uint sm, uint offset, uint pin) {
    for(int i = 0; i<=12; i++) {
    pio_gpio_init(pio, pin + i);
    }
-   pio_gpio_init(pio, clken);
+;    pio_gpio_init(pio, clken);
    pio_sm_set_consecutive_pindirs(pio, sm, pin, 12, false);
-   pio_sm_set_consecutive_pindirs(pio, sm, clken, 1, false);
+;    pio_sm_set_consecutive_pindirs(pio, sm, clken, 1, false);
    pio_sm_config c = read_adc_program_get_default_config(offset);
    sm_config_set_in_pins(&c, pin);
-   sm_config_set_jmp_pin(&c, clken);
+;    sm_config_set_jmp_pin(&c, clken);
    pio_sm_init(pio, sm, offset, &c);
 }
 %}

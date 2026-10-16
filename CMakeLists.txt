@@ -41,7 +41,7 @@ pico_set_program_name(infiniscope-fw "infiniscope-fw")
 pico_set_program_version(infiniscope-fw "0.1")
 
 # Generate PIO header
-pico_generate_pio_header(infiniscope-fw ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
+pico_generate_pio_header(infiniscope-fw ${CMAKE_CURRENT_LIST_DIR}/read_adc.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(infiniscope-fw 0)
@@ -58,7 +58,6 @@ target_include_directories(infiniscope-fw PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(infiniscope-fw 
-        hardware_dma
         hardware_pio
         )
 
