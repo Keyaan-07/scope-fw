@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(infiniscope-fw infiniscope-fw.c )
+add_executable(infiniscope-fw infiniscope-fw.c frontend_control.c)
 
 pico_set_program_name(infiniscope-fw "infiniscope-fw")
 pico_set_program_version(infiniscope-fw "0.1")
@@ -59,7 +59,8 @@ target_include_directories(infiniscope-fw PRIVATE
 # Add any user requested libraries
 target_link_libraries(infiniscope-fw 
         hardware_pio
+        # frontend_control
         )
 
 pico_add_extra_outputs(infiniscope-fw)
-
+# pico_add_extra_outputs(frontend_control)
