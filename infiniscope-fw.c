@@ -13,19 +13,20 @@
 
 volatile bool trigger_or_not = 0;
 #define capture_length 2048
-#define trigpin 1 // define the actual trigger pin here(coming from the comparator)
+#define trigpin 0 // define the actual trigger pin here(coming from the comparator)
 uint16_t captured_stuff[capture_length];
 
 #define LCD_W 240
 #define LCD_H 320
 #define TOP_STUFF 40
 
+// placeholders, replace em with actual pins
 #define BTN_PWR 1
-#define BTN_UP 1
-#define BTN_DN 1
-#define BTN_MENU 1
-#define BTN_BACK 1
-#define BTN_RUN 1
+#define BTN_UP 2
+#define BTN_DN 3
+#define BTN_MENU 4
+#define BTN_BACK 5
+#define BTN_RUN 6
 
 int power_off = 1;
 int up_pressed = 0;
@@ -37,44 +38,43 @@ int pga_multiplier = 0;
 float clock_divider = 150.0;
 bool coupling_state = 1;
 
-void int_read_adc(uint pin, uint32_t GPIO_IRQ_EDGE_RISE){
-    trigger_or_not = 1; //yes, it triggers.
+void john_interrupt(uint pin, uint32_t something){
+    switch (pin) {
+        case trigpin:
+            trigger_or_not = 1;
+            break;
+        case BTN_PWR:
+            if(power_off == 0) power_off = 1; else power_off = 0;
+            break;
+        case BTN_UP:
+            up_pressed = 1;
+            break;
+        case BTN_DN:
+            dn_pressed = 1;
+            break;
+        case BTN_MENU:
+            if(menu_state <=1) menu_state++; else menu_state = 0; // gives 3 menu states, 0, 1 and 2
+            break;
+        case BTN_BACK:
+            back_pressed = 1;
+            break;
+        case BTN_RUN:
+            run_pressed = 1;
+            break;
+    }
 }
 
-void int_PWR_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
-    if(power_off == 0) power_off = 1; else power_off = 0;
-}
-
-void int_UP_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
-    up_pressed = 1;
-}
-
-void int_DN_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
-    dn_pressed = 0;
-}
-
-void int_MENU_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
-    if(menu_state <=1) menu_state++; else menu_state = 0; // gives 3 menu states, 0, 1 and 2
-}
-
-void int_BACK_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
-    back_pressed = 1;
-}
-
-void int_RUN_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
-    run_pressed = 1;
-}
 
 void draw_waveform(){
-    for(int i = 0; i<LCD_H-TOP_STUFF; i++){
-        int y0 = captured_stuff[i]*(LCD_H-TOP_STUFF)/capture_length;
-        int y1 = captured_stuff[i-1]*(LCD_H-TOP_STUFF)/capture_length;
+    for(int i = 1; i<LCD_H-TOP_STUFF; i++){
+        int y0 = captured_stuff[i]*(LCD_H-TOP_STUFF)/4095;
+        int y1 = captured_stuff[i-1]*(LCD_H-TOP_STUFF)/4095;
         GFX_drawLine(i, y0, i+1, y1, 0xFFFF); // last 16 bits are colour bits
     }
     GFX_setCursor(1, 1);
     GFX_printf("Clock Divison: %.2f\n", clock_divider);
     GFX_setCursor(1, 10);
-    GFX_printf("PGA Gain: %.2f\n", pga_multiplier);
+    GFX_printf("PGA Gain: %d\n", pga_multiplier);
     GFX_setCursor(1, 19);
     GFX_printf("coupling state: %s", (coupling_state==0?"AC":"DC"));
     GFX_flush();
@@ -97,7 +97,7 @@ int main()
     int chan = dma_claim_unused_channel(true);
     dma_channel_config c = dma_channel_get_default_config(chan);
     channel_config_set_transfer_data_size(&c, DMA_SIZE_16);
-    channel_config_set_read_increment(&c, true);
+    channel_config_set_read_increment(&c, false);
     channel_config_set_write_increment(&c, true);
     
     dma_channel_configure(chan, &c, captured_stuff, &pio->rxf[sm], capture_length, false);
@@ -105,13 +105,14 @@ int main()
     pio_sm_set_clkdiv(pio, sm, clock_divider);
 
     read_adc_program_init(pio, sm, offset, 2);
-    gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &int_read_adc); // interrupt example taken from the RP2350 datasheet; page 549
-    gpio_set_irq_enabled_with_callback(BTN_PWR, GPIO_IRQ_EDGE_FALL, true, &int_PWR_pressed);
-    gpio_set_irq_enabled_with_callback(BTN_UP, GPIO_IRQ_EDGE_FALL, true, &int_UP_pressed);
-    gpio_set_irq_enabled_with_callback(BTN_DN, GPIO_IRQ_EDGE_FALL, true, &int_DN_pressed);
-    gpio_set_irq_enabled_with_callback(BTN_BACK, GPIO_IRQ_EDGE_FALL, true, &int_BACK_pressed);
-    gpio_set_irq_enabled_with_callback(BTN_RUN, GPIO_IRQ_EDGE_FALL, true, &int_RUN_pressed);
-    gpio_set_irq_enabled_with_callback(BTN_MENU, GPIO_IRQ_EDGE_FALL, true, &int_MENU_pressed);
+    
+    gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &john_interrupt); // interrupt example taken from the RP2350 datasheet; page 549
+    gpio_set_irq_enabled(BTN_PWR, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_UP, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_DN, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_BACK, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_RUN, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_MENU, GPIO_IRQ_EDGE_FALL, true);
 
 
     LCD_initDisplay(LCD_W, LCD_H);
@@ -129,7 +130,7 @@ int main()
                 printf("%d\n", captured_stuff[i]);
             }
             printf("Packet Over\n");
-
+            dma_channel_set_write_addr(chan, captured_stuff, true);
             trigger_or_not = 0;
         }
         draw_waveform();
