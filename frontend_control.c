@@ -7,7 +7,7 @@
 #define G2 1
 #define G3 1
 #define G4 1
-#define ACDC_SEL 1 
+#define ACDC_SEL 1
 
 // taken from the PGA281 datasheet, page 6
 void pga_set_gain(int multiplier){

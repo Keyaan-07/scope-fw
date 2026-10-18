@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(infiniscope-fw infiniscope-fw.c frontend_control.c)
+add_executable(infiniscope-fw infiniscope-fw.c frontend_control.c st7789/st7789.c gfx/gfx.c)
 
 pico_set_program_name(infiniscope-fw "infiniscope-fw")
 pico_set_program_version(infiniscope-fw "0.1")
@@ -49,16 +49,23 @@ pico_enable_stdio_usb(infiniscope-fw 0)
 
 # Add the standard library to the build
 target_link_libraries(infiniscope-fw
-        pico_stdlib)
+        pico_stdlib
+        hardware_spi
+        gfx
+        )
 
 # Add the standard include files to the build
 target_include_directories(infiniscope-fw PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        st7789
+        gfx
 )
 
 # Add any user requested libraries
 target_link_libraries(infiniscope-fw 
         hardware_pio
+        st7789
+        gfx
         )
 
 pico_add_extra_outputs(infiniscope-fw)

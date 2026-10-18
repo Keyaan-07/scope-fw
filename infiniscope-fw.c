@@ -2,8 +2,12 @@
 #include "pico/stdlib.h"
 // not using dma as of now
 #include "hardware/pio.h"
-
+#include "hardware/spi.h"
 #include "read_adc.pio.h"
+#include "gfx.h"
+
+// library link: https://github.com/tvlad1234/pico-displayDrivs
+#include "st7789.h"
 
 volatile bool trigger_or_not = 0;
 #define capture_length 2048
@@ -13,6 +17,8 @@ uint16_t captured_stuff[capture_length];
 void int_read_adc(uint pin, uint32_t GPIO_IRQ_EDGE_RISE){
     trigger_or_not = 1; //yes, it triggers.
 }
+
+
 
 int main()
 {
@@ -28,6 +34,13 @@ int main()
     read_adc_program_init(pio, sm, offset, 2);
     gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &int_read_adc); // interrupt example taken from the RP2350 datasheet; page 549
 
+
+    LCD_initDisplay(240, 320);
+    LCD_setRotation(0);
+    GFX_createFramebuf();
+
+
+
     while (1){
         while(trigger_or_not){
             for(int i = 0; i < capture_length; i++){
@@ -42,8 +55,10 @@ int main()
 
             trigger_or_not = 0;
         }
+
         sleep_ms(10);
     }
     
     return 0;
+
 }
