@@ -14,11 +14,33 @@ volatile bool trigger_or_not = 0;
 #define trigpin 1 // define the actual trigger pin here(coming from the comparator)
 uint16_t captured_stuff[capture_length];
 
+#define LCD_W 240
+#define LCD_H 320
+
+#define BTN_PWR 1
+#define BTN_UP 1
+#define BTN_DN 1
+#define BTN_MENU 1
+#define BTN_BACK 1
+#define BTN_RUN 1
+
+int power_off = 1;
+
 void int_read_adc(uint pin, uint32_t GPIO_IRQ_EDGE_RISE){
     trigger_or_not = 1; //yes, it triggers.
 }
 
+void int_PWR_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
+    if(power_off == 0) power_off = 1; else power_off = 0;
+}
 
+void int_UP_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
+
+}
+
+void int_DN_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
+
+}
 
 int main()
 {
@@ -33,10 +55,13 @@ int main()
 
     read_adc_program_init(pio, sm, offset, 2);
     gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &int_read_adc); // interrupt example taken from the RP2350 datasheet; page 549
+    gpio_set_irq_enabled_with_callback(BTN_PWR, GPIO_IRQ_EDGE_FALL, true, &int_PWR_pressed);
+    gpio_set_irq_enabled_with_callback(BTN_UP, GPIO_IRQ_EDGE_FALL, true, &int_UP_pressed);
+    gpio_set_irq_enabled_with_callback(BTN_DN, GPIO_IRQ_EDGE_FALL, true, &int_DN_pressed);
 
 
-    LCD_initDisplay(240, 320);
-    LCD_setRotation(0);
+    LCD_initDisplay(LCD_W, LCD_H);
+    LCD_setRotation(1);
     GFX_createFramebuf();
 
 
@@ -55,6 +80,14 @@ int main()
 
             trigger_or_not = 0;
         }
+
+        for(int i = 0; i<LCD_W; i++){
+            int y0 = captured_stuff[i]/capture_length*LCD_H;
+            int y1 = captured_stuff[i-1]/capture_length*LCD_H;
+
+            GFX_drawLine(i, y0, i+1, y1, 0xFFFF); // last 16 bits are colour bits
+        }
+        GFX_flush();
 
         sleep_ms(10);
     }
