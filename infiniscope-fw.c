@@ -28,7 +28,7 @@ uint16_t captured_stuff[capture_length];
 #define BTN_BACK 5
 #define BTN_RUN 6
 
-int power_off = 1;
+int power_off = 0;
 int up_pressed = 0;
 int dn_pressed = 0;
 int menu_state = 0;
@@ -105,7 +105,7 @@ int main()
     pio_sm_set_clkdiv(pio, sm, clock_divider);
 
     read_adc_program_init(pio, sm, offset, 2);
-    
+
     gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &john_interrupt); // interrupt example taken from the RP2350 datasheet; page 549
     gpio_set_irq_enabled(BTN_PWR, GPIO_IRQ_EDGE_FALL, true);
     gpio_set_irq_enabled(BTN_UP, GPIO_IRQ_EDGE_FALL, true);
@@ -120,6 +120,13 @@ int main()
     GFX_createFramebuf();
 
     while (1){
+        if(power_off){
+            pio_sm_set_enabled(pio, sm, false);
+            while(power_off){
+                sleep_ms(1);
+            }
+            pio_sm_set_enabled(pio, sm, true);
+        }
         while(trigger_or_not){
             // for(int i = 0; i < capture_length; i++){
             //     captured_stuff[i] = pio_sm_get_blocking(pio, sm);
