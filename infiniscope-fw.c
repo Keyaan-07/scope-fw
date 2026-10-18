@@ -25,6 +25,12 @@ uint16_t captured_stuff[capture_length];
 #define BTN_RUN 1
 
 int power_off = 1;
+int up_pressed = 0;
+int dn_pressed = 0;
+int menu_state = 0;
+int back_pressed = 0;
+int run_pressed = 0;
+
 
 void int_read_adc(uint pin, uint32_t GPIO_IRQ_EDGE_RISE){
     trigger_or_not = 1; //yes, it triggers.
@@ -35,11 +41,32 @@ void int_PWR_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
 }
 
 void int_UP_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
-
+    up_pressed = 1;
 }
 
 void int_DN_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
+    dn_pressed = 0;
+}
 
+void int_MENU_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
+    if(menu_state <=1) menu_state++; else menu_state = 0; // gives 3 menu states, 0, 1 and 2
+}
+
+void int_BACK_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
+    back_pressed = 1;
+}
+
+void int_RUN_pressed(uint pin, uint32_t GPIO_IRQ_EDGE_FALL){
+    run_pressed = 1;
+}
+
+void draw_waveform(){
+    for(int i = 0; i<LCD_W; i++){
+        int y0 = captured_stuff[i]*LCD_H/capture_length;
+        int y1 = captured_stuff[i-1]*LCD_H/capture_length;
+        GFX_drawLine(i, y0, i+1, y1, 0xFFFF); // last 16 bits are colour bits
+    }
+    GFX_flush();
 }
 
 int main()
@@ -52,6 +79,8 @@ int main()
     uint offset = pio_add_program(pio, &read_adc_program);
     printf("Loaded program at %d\n", offset);
     uint sm = pio_claim_unused_sm(pio, true);
+    float samples_per_second = 150.0;
+    pio_sm_set_clkdiv(pio, sm, samples_per_second);
 
     read_adc_program_init(pio, sm, offset, 2);
     gpio_set_irq_enabled_with_callback(trigpin, GPIO_IRQ_EDGE_RISE, true, &int_read_adc); // interrupt example taken from the RP2350 datasheet; page 549
@@ -63,8 +92,6 @@ int main()
     LCD_initDisplay(LCD_W, LCD_H);
     LCD_setRotation(1);
     GFX_createFramebuf();
-
-
 
     while (1){
         while(trigger_or_not){
@@ -80,16 +107,27 @@ int main()
 
             trigger_or_not = 0;
         }
+        if(menu_state == 1){
+            draw_waveform();
+            if(up_pressed == 1){
+                samples_per_second = samples_per_second*10;
+                pio_sm_set_enabled(pio, sm, false);
+                pio_sm_set_clkdiv(pio, sm, samples_per_second);
+                pio_sm_clear_fifos(pio, sm);
+                pio_sm_set_enabled(pio, sm, true);
+                up_pressed = 0;
+            }
+            if(dn_pressed == 1){
+                samples_per_second = samples_per_second/10;
+                dn_pressed = 0;
+            }
 
-        for(int i = 0; i<LCD_W; i++){
-            int y0 = captured_stuff[i]/capture_length*LCD_H;
-            int y1 = captured_stuff[i-1]/capture_length*LCD_H;
-
-            GFX_drawLine(i, y0, i+1, y1, 0xFFFF); // last 16 bits are colour bits
         }
-        GFX_flush();
+        else if(menu_state == 0){
 
-        sleep_ms(10);
+        }
+
+        sleep_ms(1);
     }
     
     return 0;
