@@ -52,6 +52,7 @@ target_link_libraries(infiniscope-fw
         pico_stdlib
         hardware_spi
         gfx
+        hardware_dma
         )
 
 # Add the standard include files to the build
